@@ -54,7 +54,9 @@ export async function signUpAction(formData: FormData): Promise<ActionResult> {
     return { status: "confirm-email" };
   }
 
-  redirect("/account");
+  // A brand-new registration is always role='customer' (default), so this
+  // never needs the admin-destination check signInAction does.
+  redirect("/");
 }
 
 export async function signInAction(
@@ -76,7 +78,7 @@ export async function signInAction(
     return { error: GENERIC_ERROR };
   }
 
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
     if (error.code !== "invalid_credentials") {
@@ -86,7 +88,20 @@ export async function signInAction(
   }
 
   const next = formData.get("next");
-  redirect(isSafeRedirect(next) ? next : "/account");
+  if (isSafeRedirect(next)) {
+    redirect(next);
+  }
+
+  // No explicit destination (e.g. not bounced here from a protected page) --
+  // default by role: admins go straight to their dashboard, everyone else
+  // to the homepage rather than the account page.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", data.user.id)
+    .single();
+
+  redirect(profile?.role === "admin" ? "/admin" : "/");
 }
 
 export async function signOutAction(): Promise<void> {
