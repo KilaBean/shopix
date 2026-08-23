@@ -68,7 +68,7 @@ export function CartPageClient() {
 
   if (!hasHydrated) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="py-8">
         <Skeleton className="mb-6 h-8 w-32" />
         <Skeleton className="h-24 w-full rounded-xl" />
       </div>
@@ -77,7 +77,7 @@ export function CartPageClient() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:px-8">
+      <div className="py-16 text-center">
         <h1 className="mb-2 text-2xl font-bold tracking-tight">Your cart</h1>
         <p className="mb-4 text-muted-foreground">Your cart is empty.</p>
         <Button nativeButton={false} render={<Link href="/products" />}>
@@ -89,7 +89,7 @@ export function CartPageClient() {
 
   if (!products) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="py-8">
         <Skeleton className="mb-6 h-8 w-32" />
         <Skeleton className="h-24 w-full rounded-xl" />
       </div>
@@ -108,7 +108,7 @@ export function CartPageClient() {
   }, 0);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="py-8">
       <h1 className="mb-6 text-2xl font-bold tracking-tight">Your cart</h1>
 
       <div className="rounded-xl border px-4">
@@ -131,7 +131,7 @@ export function CartPageClient() {
         {unavailableIds.map((productId) => (
           <div
             key={productId}
-            className="flex items-center justify-between border-b py-4 text-sm text-muted-foreground last:border-b-0"
+            className="flex flex-wrap items-center justify-between gap-2 border-b py-4 text-sm text-muted-foreground last:border-b-0"
           >
             <span>This item is no longer available.</span>
             <Button
@@ -145,7 +145,7 @@ export function CartPageClient() {
         ))}
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <span className="text-lg font-semibold">
           Subtotal: {formatPesewas(subtotal)}
         </span>
