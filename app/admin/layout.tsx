@@ -1,14 +1,9 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 import { requireAdmin } from "@/lib/auth/session";
-
-const NAV_LINKS = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/products", label: "Products" },
-  { href: "/admin/categories", label: "Categories" },
-  { href: "/admin/orders", label: "Orders" },
-];
 
 export default async function AdminLayout({
   children,
@@ -18,19 +13,18 @@ export default async function AdminLayout({
   await requireAdmin();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <nav className="mb-8 flex gap-4 border-b pb-4 text-sm font-medium">
-        {NAV_LINKS.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            {link.label}
-          </Link>
-        ))}
-      </nav>
-      {children}
-    </div>
+    <SidebarProvider>
+      <AdminSidebar />
+      <SidebarInset>
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger />
+          <Separator orientation="vertical" className="h-4" />
+          <span className="text-sm font-medium text-muted-foreground">
+            Admin
+          </span>
+        </header>
+        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

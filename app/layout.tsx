@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { clientEnv } from "@/lib/env/client";
 
 const geistSans = Geist({
@@ -49,13 +50,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           enableSystem
           disableTransitionOnChange
         >
-          <CartHydration />
-          <SiteHeader />
-          <main id="main-content" className="flex-1">
-            {children}
-          </main>
-          <SiteFooter />
-          <Toaster />
+          <TooltipProvider>
+            <CartHydration />
+            <SiteHeader />
+            <main id="main-content" className="flex-1">
+              {children}
+            </main>
+            <SiteFooter />
+            <Toaster />
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>
