@@ -49,7 +49,8 @@ export async function createProductAction(
       pendingImages.map((image, index) => ({
         product_id: data.id,
         storage_path: image.storagePath,
-        alt_text: image.fileName,
+        // Deliberately null -- see addProductImageAction's caller.
+        alt_text: null,
         sort_order: index,
       })),
     );

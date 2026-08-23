@@ -19,6 +19,13 @@ export function ProductImage({
   /** Set on above-the-fold images only -- the homepage hero is the LCP element. */
   priority?: boolean;
 }) {
+  // Uploads historically stored the file name in alt_text, which is noise to a
+  // screen reader ("earbuds.webp"). Newer uploads store null, but existing rows
+  // still carry filenames, so anything that looks like one falls back to the
+  // caller's description instead of shipping a bad label.
+  const isFilename = /\.(jpe?g|png|webp|avif|gif|svg)$/i.test(image?.alt_text ?? "");
+  const altText = image?.alt_text && !isFilename ? image.alt_text : alt;
+
   if (!image) {
     return (
       <div
@@ -36,7 +43,7 @@ export function ProductImage({
   return (
     <Image
       src={getProductImageUrl(image.storage_path)}
-      alt={image.alt_text ?? alt}
+      alt={altText}
       fill
       sizes={sizes ?? "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"}
       priority={priority}

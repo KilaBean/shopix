@@ -41,7 +41,9 @@ export function ProductImageManager({
       return;
     }
 
-    const result = await addProductImageAction(productId, path, file.name);
+    // No alt text: the file name is not a description, and shipping one as alt
+    // is worse for screen readers than falling back to the product name.
+    const result = await addProductImageAction(productId, path, null);
     if (result && "error" in result) {
       setError(result.error);
     } else {

@@ -5,7 +5,6 @@ import { ProductGrid } from "@/components/products/product-grid";
 import { ProductImage } from "@/components/products/product-image";
 import { Button } from "@/components/ui/button";
 import { getCategories, getProducts } from "@/lib/catalog/queries";
-import { formatPesewas } from "@/lib/money";
 import { getCategoryImageUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
@@ -40,36 +39,31 @@ export default async function HomePage() {
           // Two columns with the right one dropped down a step -- a staggered
           // composition reads as arranged rather than as a plain grid, and it
           // keeps the tallest edge away from the headline's baseline.
-          <div className="mx-auto grid w-full max-w-sm grid-cols-2 gap-3 sm:gap-4">
+          <div className="mx-auto grid w-full max-w-[280px] grid-cols-2 gap-2 sm:gap-3">
             {[featured.slice(0, 2), featured.slice(2, 4)].map((column, columnIndex) => (
               <div
                 key={columnIndex}
                 className={cn(
-                  "flex flex-col gap-3 sm:gap-4",
-                  columnIndex === 1 && "mt-6 sm:mt-10",
+                  "flex flex-col gap-2 sm:gap-3",
+                  columnIndex === 1 && "mt-4 sm:mt-6",
                 )}
               >
                 {column.map((product, indexInColumn) => (
                   <Link
                     key={product.id}
                     href={`/products/${product.slug}`}
-                    className="group relative aspect-4/5 overflow-hidden rounded-2xl border bg-muted"
+                    // The product name still reaches assistive tech through the
+                    // image's alt text, so dropping the visible caption doesn't
+                    // leave the link unlabelled.
+                    className="group relative aspect-4/5 overflow-hidden rounded-xl border bg-muted"
                   >
                     <ProductImage
                       image={product.image}
                       alt={product.name}
-                      sizes="192px"
+                      sizes="160px"
                       priority={columnIndex === 0 && indexInColumn === 0}
                       className="transition-transform duration-300 group-hover:scale-105"
                     />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-3 pt-8">
-                      <p className="truncate text-sm font-medium text-white">
-                        {product.name}
-                      </p>
-                      <p className="text-xs text-white/80">
-                        {formatPesewas(product.price_pesewas)}
-                      </p>
-                    </div>
                   </Link>
                 ))}
               </div>
