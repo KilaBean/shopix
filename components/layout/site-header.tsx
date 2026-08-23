@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { CartButton } from "@/components/cart/cart-button";
 import { AccountMenu } from "@/components/layout/account-menu";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Input } from "@/components/ui/input";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -37,12 +38,18 @@ export async function SiteHeader() {
           />
         </form>
         <div className="ml-auto flex items-center gap-2">
-          <CartButton />
-          <AccountMenu
+          <div className="hidden items-center gap-2 sm:flex">
+            <CartButton />
+            <AccountMenu
+              email={current?.user.email ?? null}
+              role={current?.profile.role ?? null}
+            />
+            <ThemeToggle />
+          </div>
+          <MobileNav
             email={current?.user.email ?? null}
             role={current?.profile.role ?? null}
           />
-          <ThemeToggle />
         </div>
       </div>
     </header>
