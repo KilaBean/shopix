@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
+import { OrderStatusTimeline } from "@/components/orders/order-status-timeline";
 import {
   Card,
   CardContent,
@@ -30,6 +32,13 @@ export default async function OrderDetailPage({
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
+      <Breadcrumbs
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Orders", href: "/orders" },
+          { label: "Order details" },
+        ]}
+      />
       <h1 className="mb-6 text-2xl font-bold tracking-tight">
         Order placed{" "}
         {new Date(order.created_at).toLocaleDateString("en-GH", {
@@ -41,11 +50,14 @@ export default async function OrderDetailPage({
         <Card>
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle>Status</CardTitle>
-            <div className="flex gap-2">
-              <OrderStatusBadge status={order.status} />
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Payment:</span>
               <OrderStatusBadge status={order.payment_status} />
             </div>
           </CardHeader>
+          <CardContent>
+            <OrderStatusTimeline status={order.status} />
+          </CardContent>
         </Card>
 
         <Card>

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { OrderStatusForm } from "@/components/admin/order-status-form";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
+import { OrderStatusTimeline } from "@/components/orders/order-status-timeline";
 import {
   Card,
   CardContent,
@@ -41,11 +42,12 @@ export default async function AdminOrderDetailPage({
           <CardHeader>
             <CardTitle>Status</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          <CardContent className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Payment:</span>
               <OrderStatusBadge status={order.payment_status} />
             </div>
+            <OrderStatusTimeline status={order.status} />
             <OrderStatusForm orderId={order.id} currentStatus={order.status} />
           </CardContent>
         </Card>
