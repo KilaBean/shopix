@@ -1,8 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { ProductGrid } from "@/components/products/product-grid";
 import { Button } from "@/components/ui/button";
 import { getCategories, getProducts } from "@/lib/catalog/queries";
+import { getCategoryImageUrl } from "@/lib/storage";
 
 export default async function HomePage() {
   const [categories, { products }] = await Promise.all([
@@ -36,9 +38,23 @@ export default async function HomePage() {
               <Link
                 key={category.id}
                 href={`/categories/${category.slug}`}
-                className="flex items-center justify-center rounded-xl bg-muted px-4 py-8 text-center text-sm font-medium transition-colors hover:bg-muted/70"
+                className="group relative flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-muted text-center text-sm font-medium transition-colors hover:bg-muted/70"
               >
-                {category.name}
+                {category.image_path ? (
+                  <>
+                    <Image
+                      src={getCategoryImageUrl(category.image_path)}
+                      alt=""
+                      fill
+                      sizes="(min-width: 640px) 25vw, 50vw"
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                    <span className="relative px-2 text-white">{category.name}</span>
+                  </>
+                ) : (
+                  <span className="px-4">{category.name}</span>
+                )}
               </Link>
             ))}
           </div>
