@@ -47,9 +47,9 @@ export default async function HomePage() {
                       alt=""
                       fill
                       sizes="(min-width: 1024px) 16vw, (min-width: 640px) 25vw, 33vw"
-                      className="scale-110 object-cover blur-sm transition-transform duration-300 group-hover:scale-125"
+                      className="scale-105 object-cover blur-[2px] transition-transform duration-300 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-black/35 transition-colors group-hover:bg-black/45" />
+                    <div className="absolute inset-0 bg-black/40 transition-colors group-hover:bg-black/50" />
                     <span className="relative px-2 text-white drop-shadow-sm">
                       {category.name}
                     </span>

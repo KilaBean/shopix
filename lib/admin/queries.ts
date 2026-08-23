@@ -1,7 +1,15 @@
 import "server-only";
 
 import { LOW_STOCK_THRESHOLD } from "@/components/products/stock-badge";
+import {
+  MS_PER_DAY,
+  averagePesewas,
+  dashboardWindow,
+  percentChange,
+  utcDayKey,
+} from "@/lib/admin/dashboard-math";
 import { createClient } from "@/lib/db/server";
+import { ORDER_STATUSES } from "@/lib/orders/status";
 import type { ProductImage } from "@/types/catalog";
 
 const PAGE_SIZE = 20;
@@ -214,33 +222,63 @@ export async function getLowStockProducts(): Promise<LowStockProduct[]> {
   return data ?? [];
 }
 
-export type DashboardStats = {
-  orderCount: number;
-  pendingPaymentCount: number;
-  paidRevenuePesewas: number;
-  productCount: number;
-  outOfStockCount: number;
+export const DASHBOARD_RANGES = [7, 30, 90] as const;
+export type DashboardRange = (typeof DASHBOARD_RANGES)[number];
+
+export type RevenuePoint = {
+  /** UTC day, YYYY-MM-DD. */
+  date: string;
+  revenuePesewas: number;
+  orders: number;
 };
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+export type DashboardOverview = {
+  range: DashboardRange;
+  series: RevenuePoint[];
+  revenuePesewas: number;
+  revenueDeltaPct: number | null;
+  paidOrders: number;
+  paidOrdersDeltaPct: number | null;
+  avgOrderPesewas: number;
+  avgOrderDeltaPct: number | null;
+  pendingPaymentCount: number;
+  productCount: number;
+  outOfStockCount: number;
+  statusCounts: { status: string; count: number }[];
+};
+
+/**
+ * Windowed dashboard figures plus a same-length preceding window for deltas.
+ *
+ * Orders are aggregated in JS rather than SQL because PostgREST can't GROUP BY
+ * without a dedicated view/RPC, and the row count over a 90-day window is small
+ * enough that fetching three columns is cheaper than maintaining one. Revisit
+ * with a materialized view if order volume grows past a few thousand a quarter.
+ */
+export async function getDashboardOverview(
+  range: DashboardRange,
+): Promise<DashboardOverview> {
   const supabase = await createClient();
 
+  // Window starts at midnight UTC so day buckets line up with the axis labels.
+  const { currentStart, previousStart } = dashboardWindow(range, new Date());
+
   const [
-    { count: orderCount },
+    { data: windowOrders, error: windowError },
+    { data: statusRows, error: statusError },
     { count: pendingPaymentCount },
-    { data: paidOrders },
     { count: productCount },
     { count: outOfStockCount },
   ] = await Promise.all([
-    supabase.from("orders").select("*", { count: "exact", head: true }),
+    supabase
+      .from("orders")
+      .select("created_at, total_pesewas, payment_status")
+      .gte("created_at", previousStart.toISOString()),
+    supabase.from("orders").select("status"),
     supabase
       .from("orders")
       .select("*", { count: "exact", head: true })
       .eq("payment_status", "pending"),
-    supabase
-      .from("orders")
-      .select("total_pesewas")
-      .eq("payment_status", "paid"),
     supabase.from("products").select("*", { count: "exact", head: true }),
     supabase
       .from("products")
@@ -248,14 +286,64 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .eq("stock", 0),
   ]);
 
+  if (windowError) {
+    throw new Error(`getDashboardOverview: ${windowError.message}`);
+  }
+  if (statusError) {
+    throw new Error(`getDashboardOverview: ${statusError.message}`);
+  }
+
+  // Pre-seed every day in the window so gaps render as zero, not as a skipped
+  // point that would distort the line's slope.
+  const buckets = new Map<string, RevenuePoint>();
+  for (let i = 0; i < range; i++) {
+    const key = utcDayKey(new Date(currentStart.getTime() + i * MS_PER_DAY));
+    buckets.set(key, { date: key, revenuePesewas: 0, orders: 0 });
+  }
+
+  let previousRevenue = 0;
+  let previousOrders = 0;
+
+  for (const order of windowOrders ?? []) {
+    if (order.payment_status !== "paid") continue;
+    const created = new Date(order.created_at);
+    if (created < currentStart) {
+      previousRevenue += order.total_pesewas;
+      previousOrders += 1;
+      continue;
+    }
+    const bucket = buckets.get(utcDayKey(created));
+    if (!bucket) continue;
+    bucket.revenuePesewas += order.total_pesewas;
+    bucket.orders += 1;
+  }
+
+  const series = [...buckets.values()];
+  const revenuePesewas = series.reduce((sum, p) => sum + p.revenuePesewas, 0);
+  const paidOrders = series.reduce((sum, p) => sum + p.orders, 0);
+  const avgOrderPesewas = averagePesewas(revenuePesewas, paidOrders);
+  const previousAvg = averagePesewas(previousRevenue, previousOrders);
+
+  const statusTally = new Map<string, number>();
+  for (const row of statusRows ?? []) {
+    statusTally.set(row.status, (statusTally.get(row.status) ?? 0) + 1);
+  }
+
   return {
-    orderCount: orderCount ?? 0,
+    range,
+    series,
+    revenuePesewas,
+    revenueDeltaPct: percentChange(revenuePesewas, previousRevenue),
+    paidOrders,
+    paidOrdersDeltaPct: percentChange(paidOrders, previousOrders),
+    avgOrderPesewas,
+    avgOrderDeltaPct: percentChange(avgOrderPesewas, previousAvg),
     pendingPaymentCount: pendingPaymentCount ?? 0,
-    paidRevenuePesewas: (paidOrders ?? []).reduce(
-      (sum, o) => sum + o.total_pesewas,
-      0,
-    ),
     productCount: productCount ?? 0,
     outOfStockCount: outOfStockCount ?? 0,
+    statusCounts: ORDER_STATUSES.map((status) => ({
+      status,
+      count: statusTally.get(status) ?? 0,
+    })),
   };
 }
