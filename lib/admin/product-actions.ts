@@ -16,8 +16,12 @@ function normalizeInput(input: ProductInput) {
   };
 }
 
+// productId is generated client-side (see NewProductForm) so images can be
+// uploaded to Storage under their final path before the product row exists.
 export async function createProductAction(
   input: ProductInput,
+  productId: string,
+  pendingImages: { storagePath: string; fileName: string }[] = [],
 ): Promise<ProductActionResult> {
   await requireAdmin();
 
@@ -29,7 +33,7 @@ export async function createProductAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("products")
-    .insert(normalizeInput(parsed.data))
+    .insert({ id: productId, ...normalizeInput(parsed.data) })
     .select("id")
     .single();
 
@@ -38,6 +42,22 @@ export async function createProductAction(
     return {
       error: error.code === "23505" ? "That slug is already in use." : "Something went wrong.",
     };
+  }
+
+  if (pendingImages.length > 0) {
+    const { error: imagesError } = await supabase.from("product_images").insert(
+      pendingImages.map((image, index) => ({
+        product_id: data.id,
+        storage_path: image.storagePath,
+        alt_text: image.fileName,
+        sort_order: index,
+      })),
+    );
+    if (imagesError) {
+      // The product itself was created successfully -- images can still be
+      // added from the edit page, so this doesn't block the redirect.
+      console.error("createProductAction (images):", imagesError.message);
+    }
   }
 
   revalidatePath("/admin/products");

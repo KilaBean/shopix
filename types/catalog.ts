@@ -3,6 +3,7 @@ export type Category = {
   name: string;
   slug: string;
   description: string | null;
+  image_path: string | null;
 };
 
 export type ProductImage = {

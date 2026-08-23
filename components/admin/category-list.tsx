@@ -10,12 +10,14 @@ import {
   deleteCategoryAction,
   updateCategoryAction,
 } from "@/lib/admin/category-actions";
+import { getCategoryImageUrl } from "@/lib/storage";
 
 type Category = {
   id: string;
   name: string;
   slug: string;
   description: string | null;
+  image_path: string | null;
 };
 
 export function CategoryList({ categories }: { categories: Category[] }) {
@@ -54,6 +56,8 @@ export function CategoryList({ categories }: { categories: Category[] }) {
             <CardContent>
               <CategoryForm
                 submitLabel="Save"
+                categoryId={category.id}
+                initialImagePath={category.image_path}
                 defaultValues={{ ...category, description: category.description ?? "" }}
                 onSubmit={updateCategoryAction.bind(null, category.id)}
                 onSuccess={() => setEditingId(null)}
@@ -71,9 +75,19 @@ export function CategoryList({ categories }: { categories: Category[] }) {
         ) : (
           <Card key={category.id}>
             <CardContent className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-medium">{category.name}</p>
-                <p className="text-sm text-muted-foreground">{category.slug}</p>
+              <div className="flex items-center gap-3">
+                {category.image_path ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- admin-only thumbnail of a Storage object; next/image's remote-pattern config isn't worth adding for this
+                  <img
+                    src={getCategoryImageUrl(category.image_path)}
+                    alt=""
+                    className="size-10 shrink-0 rounded-md object-cover"
+                  />
+                ) : null}
+                <div>
+                  <p className="font-medium">{category.name}</p>
+                  <p className="text-sm text-muted-foreground">{category.slug}</p>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button

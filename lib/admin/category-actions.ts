@@ -12,8 +12,12 @@ function normalizeInput(input: CategoryInput) {
   return { ...input, description: input.description || null };
 }
 
+// categoryId is generated client-side (see CategoryForm) so an image can be
+// uploaded to Storage under its final path before the row exists.
 export async function createCategoryAction(
   input: CategoryInput,
+  imagePath: string | null,
+  categoryId: string,
 ): Promise<CategoryActionResult> {
   await requireAdmin();
 
@@ -25,7 +29,7 @@ export async function createCategoryAction(
   const supabase = await createClient();
   const { error } = await supabase
     .from("categories")
-    .insert(normalizeInput(parsed.data));
+    .insert({ id: categoryId, ...normalizeInput(parsed.data), image_path: imagePath });
 
   if (error) {
     console.error("createCategoryAction:", error.message);
@@ -41,6 +45,7 @@ export async function createCategoryAction(
 export async function updateCategoryAction(
   categoryId: string,
   input: CategoryInput,
+  imagePath: string | null,
 ): Promise<CategoryActionResult> {
   await requireAdmin();
 
@@ -52,7 +57,7 @@ export async function updateCategoryAction(
   const supabase = await createClient();
   const { error } = await supabase
     .from("categories")
-    .update(normalizeInput(parsed.data))
+    .update({ ...normalizeInput(parsed.data), image_path: imagePath })
     .eq("id", categoryId);
 
   if (error) {
@@ -72,6 +77,12 @@ export async function deleteCategoryAction(
   await requireAdmin();
 
   const supabase = await createClient();
+  const { data: category } = await supabase
+    .from("categories")
+    .select("image_path")
+    .eq("id", categoryId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("categories")
     .delete()
@@ -80,6 +91,10 @@ export async function deleteCategoryAction(
   if (error) {
     console.error("deleteCategoryAction:", error.message);
     return { error: "Something went wrong." };
+  }
+
+  if (category?.image_path) {
+    await supabase.storage.from("category-images").remove([category.image_path]);
   }
 
   revalidatePath("/admin/categories");
