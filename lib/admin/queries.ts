@@ -14,12 +14,26 @@ export type AdminProductSummary = {
   stock: number;
   is_active: boolean;
   category: { name: string } | null;
+  image: ProductImage | null;
+};
+
+export type AdminProductFilters = {
+  q?: string;
+  categorySlug?: string;
+  status?: "active" | "inactive";
+};
+
+type AdminProductRow = Omit<AdminProductSummary, "image"> & {
+  product_images: ProductImage[];
 };
 
 // No is_active filter -- unlike the storefront, admin needs to see inactive
 // products too. RLS ("Active products are publicly readable" + is_admin()
 // override, Phase 2) already lets an admin caller see every row here.
-export async function getAllProductsForAdmin(page: number): Promise<{
+export async function getAllProductsForAdmin(
+  page: number,
+  filters: AdminProductFilters = {},
+): Promise<{
   products: AdminProductSummary[];
   total: number;
   page: number;
@@ -29,20 +43,43 @@ export async function getAllProductsForAdmin(page: number): Promise<{
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const { data, error, count } = await supabase
+  // Only force an inner join on categories when actually filtering by one --
+  // a plain left-join embed would otherwise hide any uncategorized product
+  // from the unfiltered list (see the same trick in catalog/queries.ts).
+  const categoryEmbed = filters.categorySlug
+    ? "category:categories!inner(name, slug)"
+    : "category:categories(name)";
+
+  let builder = supabase
     .from("products")
-    .select("id, name, slug, price_pesewas, stock, is_active, category:categories(name)", {
-      count: "exact",
-    })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .select(
+      `id, name, slug, price_pesewas, stock, is_active, ${categoryEmbed}, product_images(storage_path, alt_text, sort_order)`,
+      { count: "exact" },
+    )
+    .order("created_at", { ascending: false });
+
+  if (filters.q) {
+    builder = builder.ilike("name", `%${filters.q}%`);
+  }
+  if (filters.categorySlug) {
+    builder = builder.eq("category.slug", filters.categorySlug);
+  }
+  if (filters.status) {
+    builder = builder.eq("is_active", filters.status === "active");
+  }
+
+  const { data, error, count } = await builder.range(from, to);
 
   if (error) {
     throw new Error(`getAllProductsForAdmin: ${error.message}`);
   }
 
   return {
-    products: (data ?? []) as unknown as AdminProductSummary[],
+    products: ((data ?? []) as unknown as AdminProductRow[]).map((row) => {
+      const { product_images, ...rest } = row;
+      const [image] = [...product_images].sort((a, b) => a.sort_order - b.sort_order);
+      return { ...rest, image: image ?? null };
+    }),
     total: count ?? 0,
     page,
     pageSize: PAGE_SIZE,
@@ -101,11 +138,19 @@ export type AdminOrderSummary = {
   shipping_full_name: string;
 };
 
+export type AdminOrderFilters = {
+  q?: string;
+  status?: string;
+};
+
 // Same shape as lib/orders/queries.ts's getOrdersForCurrentUser, minus the
 // (redundant, RLS-enforced) per-user scoping -- the admin caller's "Users
 // can view their own orders" policy already includes an is_admin() clause
 // that returns every order, not just the caller's own.
-export async function getAllOrdersForAdmin(page: number): Promise<{
+export async function getAllOrdersForAdmin(
+  page: number,
+  filters: AdminOrderFilters = {},
+): Promise<{
   orders: AdminOrderSummary[];
   total: number;
   page: number;
@@ -115,14 +160,22 @@ export async function getAllOrdersForAdmin(page: number): Promise<{
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const { data, error, count } = await supabase
+  let builder = supabase
     .from("orders")
     .select(
       "id, status, payment_status, total_pesewas, currency, created_at, shipping_full_name",
       { count: "exact" },
     )
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .order("created_at", { ascending: false });
+
+  if (filters.q) {
+    builder = builder.ilike("shipping_full_name", `%${filters.q}%`);
+  }
+  if (filters.status) {
+    builder = builder.eq("status", filters.status);
+  }
+
+  const { data, error, count } = await builder.range(from, to);
 
   if (error) {
     throw new Error(`getAllOrdersForAdmin: ${error.message}`);

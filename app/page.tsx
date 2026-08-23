@@ -33,12 +33,12 @@ export default async function HomePage() {
           <h2 className="mb-4 text-xl font-semibold tracking-tight">
             Shop by category
           </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
             {categories.map((category) => (
               <Link
                 key={category.id}
                 href={`/categories/${category.slug}`}
-                className="group relative flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-muted text-center text-sm font-medium transition-colors hover:bg-muted/70"
+                className="group relative flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-muted text-center text-sm font-semibold transition-colors hover:bg-muted/70"
               >
                 {category.image_path ? (
                   <>
@@ -46,14 +46,16 @@ export default async function HomePage() {
                       src={getCategoryImageUrl(category.image_path)}
                       alt=""
                       fill
-                      sizes="(min-width: 640px) 25vw, 50vw"
-                      className="object-cover transition-transform group-hover:scale-105"
+                      sizes="(min-width: 1024px) 16vw, (min-width: 640px) 25vw, 33vw"
+                      className="scale-110 object-cover blur-sm transition-transform duration-300 group-hover:scale-125"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                    <span className="relative px-2 text-white">{category.name}</span>
+                    <div className="absolute inset-0 bg-black/35 transition-colors group-hover:bg-black/45" />
+                    <span className="relative px-2 text-white drop-shadow-sm">
+                      {category.name}
+                    </span>
                   </>
                 ) : (
-                  <span className="px-4">{category.name}</span>
+                  <span className="px-2">{category.name}</span>
                 )}
               </Link>
             ))}

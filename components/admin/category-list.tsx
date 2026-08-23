@@ -20,7 +20,13 @@ type Category = {
   image_path: string | null;
 };
 
-export function CategoryList({ categories }: { categories: Category[] }) {
+export function CategoryList({
+  categories,
+  emptyMessage = "No categories yet.",
+}: {
+  categories: Category[];
+  emptyMessage?: string;
+}) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +47,7 @@ export function CategoryList({ categories }: { categories: Category[] }) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
-          No categories yet.
+          {emptyMessage}
         </CardContent>
       </Card>
     );

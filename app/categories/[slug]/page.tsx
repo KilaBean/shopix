@@ -34,21 +34,25 @@ export default async function CategoryPage({
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       {category.image_path ? (
-        <div className="relative mb-6 aspect-[3/1] w-full overflow-hidden rounded-xl bg-muted">
+        <div className="relative mb-6 flex aspect-[3/1] w-full items-center justify-center overflow-hidden rounded-xl bg-muted">
           <Image
             src={getCategoryImageUrl(category.image_path)}
             alt=""
             fill
             sizes="(min-width: 1024px) 1024px, 100vw"
-            className="object-cover"
+            className="scale-110 object-cover blur-md"
             priority
           />
+          <div className="absolute inset-0 bg-black/45" />
+          <h1 className="relative px-4 text-center text-3xl font-bold tracking-tight text-white drop-shadow-sm sm:text-4xl">
+            {category.name}
+          </h1>
         </div>
-      ) : null}
-
-      <h1 className="mb-1 text-2xl font-bold tracking-tight">
-        {category.name}
-      </h1>
+      ) : (
+        <h1 className="mb-1 text-2xl font-bold tracking-tight">
+          {category.name}
+        </h1>
+      )}
       {category.description ? (
         <p className="mb-6 text-sm text-muted-foreground">
           {category.description}

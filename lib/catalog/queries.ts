@@ -124,12 +124,18 @@ export const getProductBySlug = cache(
   },
 );
 
-export async function getCategories(): Promise<Category[]> {
+export async function getCategories(q?: string): Promise<Category[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let builder = supabase
     .from("categories")
     .select("id, name, slug, description, image_path")
     .order("name");
+
+  if (q) {
+    builder = builder.ilike("name", `%${q}%`);
+  }
+
+  const { data, error } = await builder;
 
   if (error) {
     throw new Error(`getCategories: ${error.message}`);
