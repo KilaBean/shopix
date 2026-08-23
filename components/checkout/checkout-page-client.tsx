@@ -1,5 +1,6 @@
 "use client";
 
+import { Lock } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -105,6 +106,10 @@ export function CheckoutPageClient({
         </h1>
         <p className="text-muted-foreground">
           Taking you to a secure page to complete your payment.
+        </p>
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+          <Lock className="size-3.5" />
+          Payments are securely processed by Paystack.
         </p>
       </div>
     );

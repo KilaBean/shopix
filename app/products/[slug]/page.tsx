@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { ProductImage } from "@/components/products/product-image";
 import { StockBadge } from "@/components/products/stock-badge";
 import { getProductBySlug } from "@/lib/catalog/queries";
@@ -36,22 +36,20 @@ export default async function ProductDetailPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <nav className="mb-6 text-sm text-muted-foreground">
-        <Link href="/products" className="hover:text-foreground">
-          Products
-        </Link>
-        {product.category ? (
-          <>
-            {" / "}
-            <Link
-              href={`/categories/${product.category.slug}`}
-              className="hover:text-foreground"
-            >
-              {product.category.name}
-            </Link>
-          </>
-        ) : null}
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: "Products", href: "/products" },
+          ...(product.category
+            ? [
+                {
+                  label: product.category.name,
+                  href: `/categories/${product.category.slug}`,
+                },
+              ]
+            : []),
+          { label: product.name },
+        ]}
+      />
 
       <div className="grid gap-8 sm:grid-cols-2">
         <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">

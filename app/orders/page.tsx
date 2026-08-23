@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +28,7 @@ export default async function OrdersPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Orders" }]} />
       <h1 className="mb-6 text-2xl font-bold tracking-tight">Your orders</h1>
 
       {orders.length === 0 ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { Minus, Plus } from "lucide-react";
 import Link from "next/link";
 
 import { ProductImage } from "@/components/products/product-image";
@@ -45,20 +46,44 @@ export function CartItemRow({
           Out of stock
         </span>
       ) : (
-        <Input
-          type="number"
-          min={1}
-          max={product.stock}
-          value={quantity}
-          onChange={(event) => {
-            const next = Number(event.target.value);
-            if (Number.isInteger(next)) {
-              onQuantityChange(next);
-            }
-          }}
-          aria-label={`Quantity for ${product.name}`}
-          className="w-20"
-        />
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-8"
+            aria-label={`Decrease quantity for ${product.name}`}
+            disabled={quantity <= 1}
+            onClick={() => onQuantityChange(quantity - 1)}
+          >
+            <Minus className="size-3" />
+          </Button>
+          <Input
+            type="number"
+            min={1}
+            max={product.stock}
+            value={quantity}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              if (Number.isInteger(next)) {
+                onQuantityChange(next);
+              }
+            }}
+            aria-label={`Quantity for ${product.name}`}
+            className="w-14 text-center"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-8"
+            aria-label={`Increase quantity for ${product.name}`}
+            disabled={quantity >= product.stock}
+            onClick={() => onQuantityChange(quantity + 1)}
+          >
+            <Plus className="size-3" />
+          </Button>
+        </div>
       )}
 
       <span className="w-24 text-right text-sm font-medium">
