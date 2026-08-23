@@ -163,3 +163,47 @@ export async function deleteProductImageAction(
   revalidatePath(`/admin/products/${productId}`);
   revalidatePath("/products");
 }
+
+// Swaps sort_order between two images -- the "move left/right" reorder
+// control. Simpler and more accessible than drag-and-drop for a two-item
+// swap, with no new dependency.
+export async function reorderProductImagesAction(
+  productId: string,
+  imageIdA: string,
+  imageIdB: string,
+): Promise<ProductActionResult> {
+  await requireAdmin();
+
+  const supabase = await createClient();
+  const { data: rows, error: fetchError } = await supabase
+    .from("product_images")
+    .select("id, sort_order")
+    .in("id", [imageIdA, imageIdB]);
+
+  if (fetchError || !rows || rows.length !== 2) {
+    return { error: "Something went wrong." };
+  }
+
+  const [first, second] = rows;
+  const [firstResult, secondResult] = await Promise.all([
+    supabase
+      .from("product_images")
+      .update({ sort_order: second.sort_order })
+      .eq("id", first.id),
+    supabase
+      .from("product_images")
+      .update({ sort_order: first.sort_order })
+      .eq("id", second.id),
+  ]);
+
+  if (firstResult.error || secondResult.error) {
+    console.error(
+      "reorderProductImagesAction:",
+      firstResult.error?.message ?? secondResult.error?.message,
+    );
+    return { error: "Something went wrong." };
+  }
+
+  revalidatePath(`/admin/products/${productId}`);
+  revalidatePath("/products");
+}

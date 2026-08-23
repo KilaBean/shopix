@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,17 +24,15 @@ export function OrderStatusForm({
   const [status, setStatus] = useState(currentStatus);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   async function handleSave() {
     setPending(true);
     setError(null);
-    setSaved(false);
     const result = await updateOrderStatusAction(orderId, status);
     if (result && "error" in result) {
       setError(result.error);
     } else {
-      setSaved(true);
+      toast.success("Order status updated.");
     }
     setPending(false);
   }
@@ -64,7 +63,6 @@ export function OrderStatusForm({
       >
         {pending ? "Saving..." : "Update status"}
       </Button>
-      {saved ? <span className="text-sm text-muted-foreground">Saved.</span> : null}
       {error ? <span className="text-sm text-destructive">{error}</span> : null}
     </div>
   );

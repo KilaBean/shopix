@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { CategoryForm } from "@/components/admin/category-form";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,9 @@ export function CategoryList({ categories }: { categories: Category[] }) {
     const result = await deleteCategoryAction(id);
     if (result && "error" in result) {
       setError(result.error);
+      return;
     }
+    toast.success("Category deleted.");
   }
 
   if (categories.length === 0) {

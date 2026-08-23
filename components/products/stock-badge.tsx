@@ -1,4 +1,4 @@
-const LOW_STOCK_THRESHOLD = 5;
+export const LOW_STOCK_THRESHOLD = 5;
 
 export function StockBadge({ stock }: { stock: number }) {
   if (stock === 0) {

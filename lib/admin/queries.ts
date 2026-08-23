@@ -1,5 +1,6 @@
 import "server-only";
 
+import { LOW_STOCK_THRESHOLD } from "@/components/products/stock-badge";
 import { createClient } from "@/lib/db/server";
 import type { ProductImage } from "@/types/catalog";
 
@@ -133,6 +134,31 @@ export async function getAllOrdersForAdmin(page: number): Promise<{
     page,
     pageSize: PAGE_SIZE,
   };
+}
+
+export type LowStockProduct = {
+  id: string;
+  name: string;
+  stock: number;
+};
+
+// Same threshold StockBadge uses on the storefront, so "low stock" means
+// the same thing to an admin here as it does to a shopper there.
+export async function getLowStockProducts(): Promise<LowStockProduct[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, stock")
+    .eq("is_active", true)
+    .lte("stock", LOW_STOCK_THRESHOLD)
+    .order("stock", { ascending: true })
+    .limit(5);
+
+  if (error) {
+    throw new Error(`getLowStockProducts: ${error.message}`);
+  }
+
+  return data ?? [];
 }
 
 export type DashboardStats = {

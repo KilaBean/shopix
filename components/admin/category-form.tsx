@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { FormField } from "@/components/auth/form-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -41,6 +42,7 @@ export function CategoryForm({
       return;
     }
     reset({ name: "", slug: "", description: "", ...defaultValues });
+    toast.success("Category saved.");
     onSuccess?.();
   }
 

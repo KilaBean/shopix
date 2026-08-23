@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
+import { toast } from "sonner";
 
 import { FormField } from "@/components/auth/form-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -60,7 +61,12 @@ export function ProductForm({
     const result = await onSubmit(data);
     if (result && "error" in result) {
       setServerError(result.error);
+      return;
     }
+    // Only ever reached on the update path -- createProductAction redirects
+    // to the new product's edit page on success, unmounting this component
+    // before this line would run.
+    toast.success("Product saved.");
   }
 
   return (
