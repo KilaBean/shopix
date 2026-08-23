@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { ProductFilters } from "@/components/products/product-filters";
 import { ProductGrid } from "@/components/products/product-grid";
 import { getCategories, getCategoryBySlug, getProducts } from "@/lib/catalog/queries";
+import { getCategoryImageUrl } from "@/lib/storage";
 
 export async function generateMetadata({
   params,
@@ -31,6 +33,19 @@ export default async function CategoryPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      {category.image_path ? (
+        <div className="relative mb-6 aspect-[3/1] w-full overflow-hidden rounded-xl bg-muted">
+          <Image
+            src={getCategoryImageUrl(category.image_path)}
+            alt=""
+            fill
+            sizes="(min-width: 1024px) 1024px, 100vw"
+            className="object-cover"
+            priority
+          />
+        </div>
+      ) : null}
+
       <h1 className="mb-1 text-2xl font-bold tracking-tight">
         {category.name}
       </h1>
