@@ -40,7 +40,7 @@ export default async function HomePage() {
           // Two columns with the right one dropped down a step -- a staggered
           // composition reads as arranged rather than as a plain grid, and it
           // keeps the tallest edge away from the headline's baseline.
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="mx-auto grid w-full max-w-sm grid-cols-2 gap-3 sm:gap-4">
             {[featured.slice(0, 2), featured.slice(2, 4)].map((column, columnIndex) => (
               <div
                 key={columnIndex}
@@ -58,7 +58,7 @@ export default async function HomePage() {
                     <ProductImage
                       image={product.image}
                       alt={product.name}
-                      sizes="(min-width: 1024px) 288px, 45vw"
+                      sizes="192px"
                       priority={columnIndex === 0 && indexInColumn === 0}
                       className="transition-transform duration-300 group-hover:scale-105"
                     />
