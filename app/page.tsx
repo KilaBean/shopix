@@ -2,9 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ProductGrid } from "@/components/products/product-grid";
+import { ProductImage } from "@/components/products/product-image";
 import { Button } from "@/components/ui/button";
 import { getCategories, getProducts } from "@/lib/catalog/queries";
+import { formatPesewas } from "@/lib/money";
 import { getCategoryImageUrl } from "@/lib/storage";
+import { cn } from "@/lib/utils";
 
 export default async function HomePage() {
   const [categories, { products }] = await Promise.all([
@@ -12,20 +15,67 @@ export default async function HomePage() {
     getProducts({ sort: "newest", page: 1 }),
   ]);
 
+  // Only products that actually have artwork earn a spot in the hero -- an
+  // "image missing" placeholder there would undercut the whole composition.
+  const featured = products.filter((product) => product.image).slice(0, 4);
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-16 px-4 py-16 sm:px-6 lg:px-8">
-      <section className="flex flex-col items-start gap-6">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          Shopix
-        </h1>
-        <p className="max-w-2xl text-lg text-muted-foreground">
-          A portfolio-grade e-commerce MVP: browse products, check out with
-          Paystack, and manage orders — built on Next.js, Supabase, and
-          server-authoritative pricing.
-        </p>
-        <Button nativeButton={false} render={<Link href="/products" />}>
-          Browse products
-        </Button>
+      <section className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="flex flex-col items-start gap-6">
+          <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+            Everyday essentials, delivered across Ghana.
+          </h1>
+          <p className="max-w-xl text-lg text-muted-foreground">
+            Shop electronics, home and kitchen, fashion, and personal care —
+            with secure checkout, clear pricing in cedis, and order tracking
+            from payment to delivery.
+          </p>
+          <Button nativeButton={false} render={<Link href="/products" />}>
+            Browse products
+          </Button>
+        </div>
+
+        {featured.length >= 2 ? (
+          // Two columns with the right one dropped down a step -- a staggered
+          // composition reads as arranged rather than as a plain grid, and it
+          // keeps the tallest edge away from the headline's baseline.
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            {[featured.slice(0, 2), featured.slice(2, 4)].map((column, columnIndex) => (
+              <div
+                key={columnIndex}
+                className={cn(
+                  "flex flex-col gap-3 sm:gap-4",
+                  columnIndex === 1 && "mt-6 sm:mt-10",
+                )}
+              >
+                {column.map((product, indexInColumn) => (
+                  <Link
+                    key={product.id}
+                    href={`/products/${product.slug}`}
+                    className="group relative aspect-4/5 overflow-hidden rounded-2xl border bg-muted"
+                  >
+                    <ProductImage
+                      image={product.image}
+                      alt={product.name}
+                      sizes="(min-width: 1024px) 288px, 45vw"
+                      priority={columnIndex === 0 && indexInColumn === 0}
+                      className="transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-3 pt-8">
+                      <p className="truncate text-sm font-medium text-white">
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-white/80">
+                        {formatPesewas(product.price_pesewas)}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       {categories.length > 0 ? (

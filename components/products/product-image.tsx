@@ -10,11 +10,14 @@ export function ProductImage({
   alt,
   className,
   sizes,
+  priority,
 }: {
   image: ProductImageType | null;
   alt: string;
   className?: string;
   sizes?: string;
+  /** Set on above-the-fold images only -- the homepage hero is the LCP element. */
+  priority?: boolean;
 }) {
   if (!image) {
     return (
@@ -36,6 +39,7 @@ export function ProductImage({
       alt={image.alt_text ?? alt}
       fill
       sizes={sizes ?? "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"}
+      priority={priority}
       className={cn("object-cover", className)}
     />
   );

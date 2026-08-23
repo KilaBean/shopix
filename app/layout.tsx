@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     template: "%s | Shopix",
   },
   description:
-    "Shopix is a portfolio-grade e-commerce MVP built with Next.js, Supabase, and Paystack.",
+    "Shop electronics, home and kitchen, fashion, and personal care in Ghana. Secure checkout, clear pricing in cedis, and order tracking on every purchase.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
