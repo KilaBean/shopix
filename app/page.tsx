@@ -58,7 +58,7 @@ export default async function HomePage() {
                     // The product name still reaches assistive tech through the
                     // image's alt text, so dropping the visible caption doesn't
                     // leave the link unlabelled.
-                    className="group relative aspect-square overflow-hidden rounded-xl border bg-muted"
+                    className="group relative aspect-4/5 overflow-hidden rounded-xl border bg-muted"
                   >
                     <ProductImage
                       image={product.image}
