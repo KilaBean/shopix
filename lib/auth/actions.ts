@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { postAuthDestination } from "@/lib/auth/post-auth-destination";
 import { isSafeRedirect } from "@/lib/auth/safe-redirect";
 import { createClient } from "@/lib/db/server";
 import { loginSchema, registerSchema } from "@/lib/validation/auth";
@@ -95,13 +97,49 @@ export async function signInAction(
   // No explicit destination (e.g. not bounced here from a protected page) --
   // default by role: admins go straight to their dashboard, everyone else
   // to the homepage rather than the account page.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", data.user.id)
-    .single();
+  redirect(await postAuthDestination(supabase, data.user.id));
+}
 
-  redirect(profile?.role === "admin" ? "/admin" : "/");
+/**
+ * Starts the Google OAuth flow. Supabase returns the provider URL rather than
+ * redirecting itself, so the action performs the redirect.
+ *
+ * The return origin is taken from the request headers, not from
+ * NEXT_PUBLIC_APP_URL: that variable holds the production URL, which would
+ * send a developer signing in on localhost over to the live site.
+ */
+export async function signInWithGoogleAction(
+  formData: FormData,
+): Promise<void> {
+  let supabase;
+  try {
+    supabase = await createClient();
+  } catch {
+    redirect("/login?error=oauth-failed");
+  }
+
+  const requestHeaders = await headers();
+  const origin =
+    requestHeaders.get("origin") ??
+    `https://${requestHeaders.get("host") ?? ""}`;
+
+  const next = formData.get("next");
+  const callback = new URL("/auth/callback", origin);
+  if (isSafeRedirect(next)) {
+    callback.searchParams.set("next", next);
+  }
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: callback.toString() },
+  });
+
+  if (error || !data.url) {
+    console.error("signInWithGoogleAction:", error?.code, error?.message);
+    redirect("/login?error=oauth-failed");
+  }
+
+  redirect(data.url);
 }
 
 export async function signOutAction(): Promise<void> {

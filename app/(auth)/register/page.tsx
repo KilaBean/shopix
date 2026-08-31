@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import {
+  AuthDivider,
+  GoogleSignInButton,
+} from "@/components/auth/google-sign-in-button";
 import { RegisterForm } from "@/components/auth/register-form";
 import {
   Card,
@@ -25,6 +29,8 @@ export default function RegisterPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <GoogleSignInButton label="Sign up with Google" />
+        <AuthDivider />
         <RegisterForm />
       </CardContent>
     </Card>
