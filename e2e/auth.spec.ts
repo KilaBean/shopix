@@ -35,11 +35,64 @@ test("register, then log in, then sign out", async ({ page }) => {
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  await expect(page).toHaveURL(/\/account$/);
+  // Signing in without a `next` lands by role: a customer goes to the
+  // homepage, not /account (admins go to /admin).
+  await expect(page).toHaveURL("/");
+
+  await page.goto("/account");
   await expect(page.getByText("Your account")).toBeVisible();
 
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL("/");
+});
+
+test.describe("Google sign-in", () => {
+  // No Google round-trip here: that needs real provider credentials and a
+  // third-party consent screen. These cover the parts this app owns -- the
+  // entry points and the failure messaging.
+
+  test("both auth pages offer Google, as a form that works unhydrated", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+    const loginButton = page.getByRole("button", { name: "Continue with Google" });
+    await expect(loginButton).toBeVisible();
+    // A Server Action form rather than an onClick handler, so the flow still
+    // starts if JS hasn't loaded yet.
+    await expect(page.locator("form").filter({ has: loginButton })).toHaveCount(1);
+
+    await page.goto("/register");
+    await expect(
+      page.getByRole("button", { name: "Sign up with Google" }),
+    ).toBeVisible();
+  });
+
+  test("carries the post-login destination into the OAuth flow", async ({
+    page,
+  }) => {
+    await page.goto("/account");
+    await expect(page).toHaveURL("/login?next=%2Faccount");
+    // Without this the user would sign in with Google and lose the page they
+    // were originally trying to reach.
+    await expect(page.locator('input[name="next"]')).toHaveValue("/account");
+  });
+
+  test("explains a failed sign-in without echoing the raw code", async ({
+    page,
+  }) => {
+    await page.goto("/login?error=oauth-failed");
+    await expect(
+      page.getByText("We couldn't complete that sign-in. Please try again."),
+    ).toBeVisible();
+
+    await page.goto("/login?error=confirmation-failed");
+    await expect(page.getByText(/confirmation link is invalid/)).toBeVisible();
+
+    // Messages come from a fixed code->message map, so an arbitrary query
+    // string renders nothing rather than being reflected onto the page.
+    await page.goto("/login?error=%3Cscript%3Ealert(1)%3C%2Fscript%3E");
+    await expect(page.locator('[data-slot="alert"]')).toHaveCount(0);
+  });
 });
 
 test("visiting /account while signed out redirects to /login", async ({

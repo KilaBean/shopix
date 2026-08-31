@@ -16,7 +16,7 @@ import type { CartProductInfo } from "@/types/catalog";
 
 function SkeletonState() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="py-8">
       <Skeleton className="mb-6 h-8 w-32" />
       <Skeleton className="h-64 w-full rounded-xl" />
     </div>
@@ -100,7 +100,7 @@ export function CheckoutPageClient({
 
   if (redirecting) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-16 text-center sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-lg py-16 text-center">
         <h1 className="mb-2 text-2xl font-bold tracking-tight">
           Redirecting to Paystack...
         </h1>
@@ -121,7 +121,7 @@ export function CheckoutPageClient({
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:px-8">
+      <div className="py-16 text-center">
         <h1 className="mb-2 text-2xl font-bold tracking-tight">Checkout</h1>
         <p className="mb-4 text-muted-foreground">Your cart is empty.</p>
         <Button nativeButton={false} render={<Link href="/products" />}>

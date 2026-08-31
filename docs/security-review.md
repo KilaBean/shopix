@@ -11,6 +11,16 @@ A walkthrough of `.claude/skills/security/SKILL.md`'s required controls and thre
 
 Fixed with a shared `isSafeRedirect()` (`lib/auth/safe-redirect.ts`): requires the value to start with `/` and explicitly rejects `//` (protocol-relative). Both call sites now fall back to `/account` for anything that fails the check.
 
+## Google OAuth (added after the original review)
+
+Google sign-in introduces a third redirect surface and one new class of input, so it is held to the same rules as the flows above.
+
+- **`next` through the OAuth round-trip.** The destination travels to Google and back as a query parameter on a URL the provider controls, so it is treated as untrusted on return exactly like the email-confirmation link: `app/auth/callback/route.ts` runs the same `isSafeRedirect()` guard before concatenating `${origin}${destination}`, falling back to a role-derived path. The value is also range-checked on the way *out* (`signInWithGoogleAction`) so a crafted `/login?next=//evil.com` cannot even be planted in the callback URL registered with Google.
+- **Return origin is not attacker-controlled.** `redirectTo` is built from the request's own `origin`/`host` header rather than a query parameter, and Supabase independently rejects any `redirectTo` not on the project's allow-list — so an attacker cannot point the callback at their own host even if they can reach the action. (The header source is a correctness fix for local development, not the security boundary; the allow-list is.)
+- **Error codes are never reflected.** `/auth/callback` and the action redirect to `/login?error=<code>`, and the login page resolves that code through a fixed `AUTH_ERRORS` map instead of rendering the parameter. An unrecognised value renders no alert at all, so the query string is not a reflected-content sink. Covered by an e2e assertion (`e2e/auth.spec.ts`) that `?error=<script>alert(1)</script>` produces zero alert elements.
+- **No new privilege path.** OAuth users receive a `profiles` row from the same `handle_new_user()` trigger as email signups, with the same `role` default of `customer`; `prevent_role_change()` still blocks self-promotion for any non-`service_role` caller regardless of how the session was obtained. The post-auth destination is read from `profiles.role` server-side (`lib/auth/post-auth-destination.ts`), never from provider metadata — a Google account cannot claim admin by supplying its own claims.
+- **Provider secrets stay with Supabase.** The Google client secret is held in the Supabase project's provider settings, never in this repository's environment or bundle; the app only ever handles the resulting PKCE `code`.
+
 ## Required controls
 
 | Control | Where |
