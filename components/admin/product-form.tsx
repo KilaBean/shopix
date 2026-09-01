@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { toCategoryOptions } from "@/lib/catalog/category-path";
 import { formatPesewas } from "@/lib/money";
 import { productSchema, type ProductInput } from "@/lib/validation/admin-products";
 
@@ -58,20 +59,7 @@ export function ProductForm({
 
   // Base UI's Select.Value renders the raw *value* unless the root is given a
   // value->label map (without it the trigger showed the category's UUID).
-  // Subcategory names are ambiguous on their own ("Accessories" could sit
-  // under several parents), so every option carries its full path.
-  const categoryPaths = useMemo(() => {
-    const nameById = new Map(categories.map((c) => [c.id, c.name]));
-    return categories
-      .map((c) => ({
-        id: c.id,
-        label: c.parent_id
-          ? `${nameById.get(c.parent_id) ?? "?"} › ${c.name}`
-          : c.name,
-      }))
-      // Parents first, each followed by its children, matching the admin list.
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [categories]);
+  const categoryPaths = useMemo(() => toCategoryOptions(categories), [categories]);
 
   const categoryItems = useMemo(
     () => ({
