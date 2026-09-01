@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { getAllProductsForAdmin } from "@/lib/admin/queries";
+import { toCategoryOptions } from "@/lib/catalog/category-path";
 import { filterFieldClassName } from "@/lib/admin/filter-field-class";
 import { getCategories } from "@/lib/catalog/queries";
 import { formatPesewas } from "@/lib/money";
@@ -44,6 +45,11 @@ export default async function AdminProductsPage({
   ]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  // "Electronics > Mobile Phones" everywhere a category is named here, so a
+  // subcategory row isn't just an unqualified "Mobile Phones".
+  const categoryOptions = toCategoryOptions(categories);
+  const labelByCategoryId = new Map(categoryOptions.map((o) => [o.id, o.label]));
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -82,9 +88,14 @@ export default async function AdminProductsPage({
             className={filterFieldClassName}
           >
             <option value="">All categories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.slug}>
-                {category.name}
+            {categoryOptions.map((option) => (
+              <option
+                key={option.id}
+                value={
+                  categories.find((c) => c.id === option.id)?.slug ?? ""
+                }
+              >
+                {option.label}
               </option>
             ))}
           </select>
@@ -157,8 +168,11 @@ export default async function AdminProductsPage({
                     ) : null}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {product.category?.name ?? "Uncategorized"} · Stock:{" "}
-                    {product.stock}
+                    {product.category
+                      ? (labelByCategoryId.get(product.category.id) ??
+                        product.category.name)
+                      : "Uncategorized"}{" "}
+                    · Stock: {product.stock}
                   </p>
                 </div>
                 <span className="shrink-0 font-semibold">

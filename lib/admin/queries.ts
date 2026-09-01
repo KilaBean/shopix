@@ -8,6 +8,7 @@ import {
   percentChange,
   utcDayKey,
 } from "@/lib/admin/dashboard-math";
+import { getCategoryIdsForFilter } from "@/lib/catalog/queries";
 import { createClient } from "@/lib/db/server";
 import { ORDER_STATUSES } from "@/lib/orders/status";
 import type { ProductImage } from "@/types/catalog";
@@ -21,7 +22,7 @@ export type AdminProductSummary = {
   price_pesewas: number;
   stock: number;
   is_active: boolean;
-  category: { name: string } | null;
+  category: { id: string; name: string; parent_id: string | null } | null;
   image: ProductImage | null;
 };
 
@@ -51,17 +52,22 @@ export async function getAllProductsForAdmin(
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  // Only force an inner join on categories when actually filtering by one --
-  // a plain left-join embed would otherwise hide any uncategorized product
-  // from the unfiltered list (see the same trick in catalog/queries.ts).
-  const categoryEmbed = filters.categorySlug
-    ? "category:categories!inner(name, slug)"
-    : "category:categories(name)";
+  // Filter on category_id via the shared resolver so selecting a parent also
+  // returns its subcategories' products -- the same rule the storefront uses.
+  // A plain left-join embed then keeps uncategorized products visible in the
+  // unfiltered list.
+  let categoryIds: string[] | null = null;
+  if (filters.categorySlug) {
+    categoryIds = await getCategoryIdsForFilter(filters.categorySlug);
+    if (categoryIds.length === 0) {
+      return { products: [], total: 0, page, pageSize: PAGE_SIZE };
+    }
+  }
 
   let builder = supabase
     .from("products")
     .select(
-      `id, name, slug, price_pesewas, stock, is_active, ${categoryEmbed}, product_images(storage_path, alt_text, sort_order)`,
+      `id, name, slug, price_pesewas, stock, is_active, category:categories(id, name, parent_id), product_images(storage_path, alt_text, sort_order)`,
       { count: "exact" },
     )
     .order("created_at", { ascending: false });
@@ -69,8 +75,8 @@ export async function getAllProductsForAdmin(
   if (filters.q) {
     builder = builder.ilike("name", `%${filters.q}%`);
   }
-  if (filters.categorySlug) {
-    builder = builder.eq("category.slug", filters.categorySlug);
+  if (categoryIds) {
+    builder = builder.in("category_id", categoryIds);
   }
   if (filters.status) {
     builder = builder.eq("is_active", filters.status === "active");

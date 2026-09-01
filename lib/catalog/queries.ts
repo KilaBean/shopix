@@ -185,7 +185,7 @@ export async function getProductsByIds(
  * plus its subcategories. Empty when the slug matches nothing, which the
  * caller treats as "no results" rather than "no filter".
  */
-const getCategoryIdsForFilter = cache(async (slug: string): Promise<string[]> => {
+export const getCategoryIdsForFilter = cache(async (slug: string): Promise<string[]> => {
   const category = await getCategoryBySlug(slug);
   if (!category) return [];
 
