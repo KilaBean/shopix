@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatPesewas } from "@/lib/money";
 import { productSchema, type ProductInput } from "@/lib/validation/admin-products";
 
-type Category = { id: string; name: string };
+type Category = { id: string; name: string; parent_id?: string | null };
 
 export function ProductForm({
   categories,
@@ -57,14 +57,28 @@ export function ProductForm({
   const price = useWatch({ control, name: "price_pesewas" });
 
   // Base UI's Select.Value renders the raw *value* unless the root is given a
-  // value->label map. Without this the trigger showed the category's UUID
-  // after a selection instead of its name.
+  // value->label map (without it the trigger showed the category's UUID).
+  // Subcategory names are ambiguous on their own ("Accessories" could sit
+  // under several parents), so every option carries its full path.
+  const categoryPaths = useMemo(() => {
+    const nameById = new Map(categories.map((c) => [c.id, c.name]));
+    return categories
+      .map((c) => ({
+        id: c.id,
+        label: c.parent_id
+          ? `${nameById.get(c.parent_id) ?? "?"} › ${c.name}`
+          : c.name,
+      }))
+      // Parents first, each followed by its children, matching the admin list.
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [categories]);
+
   const categoryItems = useMemo(
     () => ({
       none: "Uncategorized",
-      ...Object.fromEntries(categories.map((c) => [c.id, c.name])),
+      ...Object.fromEntries(categoryPaths.map((c) => [c.id, c.label])),
     }),
-    [categories],
+    [categoryPaths],
   );
 
   async function submit(data: ProductInput) {
@@ -144,9 +158,9 @@ export function ProductForm({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Uncategorized</SelectItem>
-                {categories.map((category) => (
+                {categoryPaths.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                    {category.label}
                   </SelectItem>
                 ))}
               </SelectContent>

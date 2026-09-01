@@ -18,6 +18,10 @@ export default async function HomePage() {
   // "image missing" placeholder there would undercut the whole composition.
   const featured = products.filter((product) => product.image).slice(0, 4);
 
+  // Top level only: subcategories are reached from their parent's page, so
+  // showing them here would flatten the hierarchy back out.
+  const topLevelCategories = categories.filter((category) => !category.parent_id);
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-16 px-4 py-16 sm:px-6 lg:px-8">
       <section className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -75,13 +79,13 @@ export default async function HomePage() {
         ) : null}
       </section>
 
-      {categories.length > 0 ? (
+      {topLevelCategories.length > 0 ? (
         <section>
           <h2 className="mb-4 text-xl font-semibold tracking-tight">
             Shop by category
           </h2>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            {categories.map((category) => (
+            {topLevelCategories.map((category) => (
               <Link
                 key={category.id}
                 href={`/categories/${category.slug}`}

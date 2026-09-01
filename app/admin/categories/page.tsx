@@ -20,14 +20,25 @@ export default async function AdminCategoriesPage({
 }: PageProps<"/admin/categories">) {
   const raw = await searchParams;
   const q = firstValue(raw.q) || undefined;
-  const categories = await getCategories(q);
+  // The search filters the list, but the parent picker always needs the full
+  // set of top-level categories -- otherwise searching would silently shrink
+  // the options you can assign a parent from.
+  const [categories, allCategories] = await Promise.all([
+    getCategories(q),
+    getCategories(),
+  ]);
+  const topLevel = allCategories.filter((c) => !c.parent_id);
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold tracking-tight">Categories</h1>
 
       <h2 className="mb-3 text-lg font-semibold">New category</h2>
-      <CategoryForm submitLabel="Create category" onSubmit={createCategoryAction} />
+      <CategoryForm
+        submitLabel="Create category"
+        onSubmit={createCategoryAction}
+        parentOptions={topLevel}
+      />
 
       <Separator className="my-8" />
 
@@ -68,6 +79,7 @@ export default async function AdminCategoriesPage({
 
       <CategoryList
         categories={categories}
+        allCategories={allCategories}
         emptyMessage={q ? "No categories match this search." : "No categories yet."}
       />
     </div>

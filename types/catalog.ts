@@ -4,6 +4,8 @@ export type Category = {
   slug: string;
   description: string | null;
   image_path: string | null;
+  /** Null for a top-level category. Nesting is capped at one level deep. */
+  parent_id: string | null;
 };
 
 export type ProductImage = {

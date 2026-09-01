@@ -71,6 +71,27 @@ describe("categorySchema", () => {
     expect(categorySchema.safeParse(rest).success).toBe(true);
   });
 
+  it("treats an omitted or null parent as top level", () => {
+    expect(categorySchema.safeParse(valid).success).toBe(true);
+    expect(
+      categorySchema.safeParse({ ...valid, parent_id: null }).success,
+    ).toBe(true);
+  });
+
+  it("accepts a uuid parent", () => {
+    const parsed = categorySchema.safeParse({
+      ...valid,
+      parent_id: "0b1497b9-451e-44b5-90ef-f9f0460dd3ba",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects a parent that isn't a uuid", () => {
+    expect(
+      categorySchema.safeParse({ ...valid, parent_id: "electronics" }).success,
+    ).toBe(false);
+  });
+
   it("rejects a blank name", () => {
     expect(categorySchema.safeParse({ ...valid, name: "" }).success).toBe(
       false,

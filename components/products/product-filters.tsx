@@ -30,6 +30,17 @@ export function ProductFilters({
   categories: Category[];
   query: ProductsQuery;
 }) {
+  const topLevel = categories.filter((c) => !c.parent_id);
+  const selected = categories.find((c) => c.slug === query.category) ?? null;
+  // Whichever top-level branch is active: the selection itself, or its parent
+  // when a subcategory is selected.
+  const activeTopLevel = selected?.parent_id
+    ? (categories.find((c) => c.id === selected.parent_id) ?? null)
+    : selected;
+  const siblings = activeTopLevel
+    ? categories.filter((c) => c.parent_id === activeTopLevel.id)
+    : [];
+
   return (
     <div className="flex flex-col gap-4">
       <form method="GET" action="/products" className="flex gap-2">
@@ -55,7 +66,7 @@ export function ProductFilters({
         >
           All
         </Link>
-        {categories.map((category) => (
+        {topLevel.map((category) => (
           <Link
             key={category.id}
             href={buildProductsUrl({
@@ -65,7 +76,9 @@ export function ProductFilters({
             })}
             className={cn(
               "rounded-full border px-3 py-1 text-sm",
-              query.category === category.slug
+              // A selected subcategory keeps its parent highlighted, so the
+              // row still shows where you are in the tree.
+              activeTopLevel?.id === category.id
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border hover:bg-muted",
             )}
@@ -74,6 +87,31 @@ export function ProductFilters({
           </Link>
         ))}
       </div>
+
+      {/* Second row appears only once a top-level category is in play, so an
+          unfiltered listing isn't buried under every subcategory at once. */}
+      {siblings.length > 0 ? (
+        <div className="flex flex-wrap gap-2 pl-1">
+          {siblings.map((child) => (
+            <Link
+              key={child.id}
+              href={buildProductsUrl({
+                q: query.q,
+                sort: query.sort,
+                category: child.slug,
+              })}
+              className={cn(
+                "rounded-full border px-3 py-1 text-sm",
+                query.category === child.slug
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {child.name}
+            </Link>
+          ))}
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span>Sort:</span>

@@ -18,20 +18,33 @@ type Category = {
   slug: string;
   description: string | null;
   image_path: string | null;
+  parent_id: string | null;
 };
 
 export function CategoryList({
   categories,
+  allCategories,
   emptyMessage = "No categories yet.",
 }: {
   categories: Category[];
+  /** Unfiltered set, so parent names resolve even when the list is searched. */
+  allCategories: Category[];
   emptyMessage?: string;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const nameById = new Map(allCategories.map((c) => [c.id, c.name]));
+  const hasChildren = new Set(
+    allCategories.filter((c) => c.parent_id).map((c) => c.parent_id as string),
+  );
+  const topLevel = allCategories.filter((c) => !c.parent_id);
+
   async function handleDelete(id: string) {
-    if (!confirm("Delete this category? Products in it become uncategorized.")) {
+    const warning = hasChildren.has(id)
+      ? "Delete this category? Its subcategories become top-level, and products in it become uncategorized."
+      : "Delete this category? Products in it become uncategorized.";
+    if (!confirm(warning)) {
       return;
     }
     setError(null);
@@ -42,6 +55,19 @@ export function CategoryList({
     }
     toast.success("Category deleted.");
   }
+
+  // Parents first, each followed by its own children, so the indentation in
+  // the list reflects the actual tree rather than alphabetical order.
+  const orderedCategories = categories
+    .filter((c) => !c.parent_id)
+    .flatMap((parent) => [
+      parent,
+      ...categories.filter((c) => c.parent_id === parent.id),
+    ]);
+  // A search can match a child whose parent didn't match; those would vanish
+  // from the grouped order above, so append anything left over.
+  const seen = new Set(orderedCategories.map((c) => c.id));
+  orderedCategories.push(...categories.filter((c) => !seen.has(c.id)));
 
   if (categories.length === 0) {
     return (
@@ -56,7 +82,7 @@ export function CategoryList({
   return (
     <div className="flex flex-col gap-2">
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {categories.map((category) =>
+      {orderedCategories.map((category) =>
         editingId === category.id ? (
           <Card key={category.id}>
             <CardContent>
@@ -65,6 +91,14 @@ export function CategoryList({
                 categoryId={category.id}
                 initialImagePath={category.image_path}
                 defaultValues={{ ...category, description: category.description ?? "" }}
+                // A category that already has children can't become a child
+                // itself (the database enforces this), so don't offer it the
+                // choice -- and never offer itself.
+                parentOptions={
+                  hasChildren.has(category.id)
+                    ? []
+                    : topLevel.filter((c) => c.id !== category.id)
+                }
                 onSubmit={updateCategoryAction.bind(null, category.id)}
                 onSuccess={() => setEditingId(null)}
               />
@@ -79,7 +113,7 @@ export function CategoryList({
             </CardContent>
           </Card>
         ) : (
-          <Card key={category.id}>
+          <Card key={category.id} className={category.parent_id ? "ml-6" : undefined}>
             <CardContent className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 {category.image_path ? (
@@ -91,7 +125,15 @@ export function CategoryList({
                   />
                 ) : null}
                 <div>
-                  <p className="font-medium">{category.name}</p>
+                  <p className="font-medium">
+                    {category.parent_id ? (
+                      <span className="font-normal text-muted-foreground">
+                        {nameById.get(category.parent_id) ?? "?"}{" "}
+                        <span aria-hidden="true">&rsaquo;</span>{" "}
+                      </span>
+                    ) : null}
+                    {category.name}
+                  </p>
                   <p className="text-sm text-muted-foreground">{category.slug}</p>
                 </div>
               </div>

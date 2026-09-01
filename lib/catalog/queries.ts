@@ -50,17 +50,23 @@ export async function getProducts(query: ProductsQuery): Promise<{
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  // Only force an inner join on categories when actually filtering by one —
-  // a plain left-join embed would otherwise hide any product whose category
-  // was deleted (category_id null) from every unfiltered listing.
-  const categoryEmbed = query.category
-    ? "categories!inner(name, slug)"
-    : "categories(name, slug)";
+  // Filtering happens on products.category_id rather than through the embed,
+  // because selecting a parent category must also return everything in its
+  // subcategories -- "Electronics" includes "Mobile Phones". That also lets
+  // the embed stay a plain left join, so uncategorized products are never
+  // hidden from an unfiltered listing.
+  let categoryIds: string[] | null = null;
+  if (query.category) {
+    categoryIds = await getCategoryIdsForFilter(query.category);
+    if (categoryIds.length === 0) {
+      return { products: [], total: 0, page, pageSize: PAGE_SIZE };
+    }
+  }
 
   let builder = supabase
     .from("products")
     .select(
-      `id, name, slug, price_pesewas, stock, ${categoryEmbed}, product_images(storage_path, alt_text, sort_order)`,
+      `id, name, slug, price_pesewas, stock, categories(name, slug), product_images(storage_path, alt_text, sort_order)`,
       { count: "exact" },
     )
     .eq("is_active", true);
@@ -68,8 +74,8 @@ export async function getProducts(query: ProductsQuery): Promise<{
   if (query.q) {
     builder = builder.ilike("name", `%${query.q}%`);
   }
-  if (query.category) {
-    builder = builder.eq("categories.slug", query.category);
+  if (categoryIds) {
+    builder = builder.in("category_id", categoryIds);
   }
 
   if (query.sort === "price_asc") {
@@ -128,7 +134,7 @@ export async function getCategories(q?: string): Promise<Category[]> {
   const supabase = await createClient();
   let builder = supabase
     .from("categories")
-    .select("id, name, slug, description, image_path")
+    .select("id, name, slug, description, image_path, parent_id")
     .order("name");
 
   if (q) {
@@ -174,12 +180,46 @@ export async function getProductsByIds(
   }));
 }
 
+/**
+ * The category ids a `?category=` filter should match: the category itself
+ * plus its subcategories. Empty when the slug matches nothing, which the
+ * caller treats as "no results" rather than "no filter".
+ */
+const getCategoryIdsForFilter = cache(async (slug: string): Promise<string[]> => {
+  const category = await getCategoryBySlug(slug);
+  if (!category) return [];
+
+  // Only a top-level category can have children (enforced by the
+  // enforce_category_depth trigger), so this never needs to recurse.
+  if (category.parent_id) return [category.id];
+
+  return [category.id, ...(await getChildCategories(category.id)).map((c) => c.id)];
+});
+
+/** Direct children of a top-level category, alphabetical. */
+export const getChildCategories = cache(
+  async (parentId: string): Promise<Category[]> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("categories")
+      .select("id, name, slug, description, image_path, parent_id")
+      .eq("parent_id", parentId)
+      .order("name");
+
+    if (error) {
+      throw new Error(`getChildCategories: ${error.message}`);
+    }
+
+    return data ?? [];
+  },
+);
+
 export const getCategoryBySlug = cache(
   async (slug: string): Promise<Category | null> => {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("categories")
-      .select("id, name, slug, description, image_path")
+      .select("id, name, slug, description, image_path, parent_id")
       .eq("slug", slug)
       .maybeSingle();
 

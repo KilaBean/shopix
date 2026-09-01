@@ -1,14 +1,21 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { FormField } from "@/components/auth/form-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/db/browser";
 import { getCategoryImageUrl } from "@/lib/storage";
@@ -18,6 +25,7 @@ export function CategoryForm({
   categoryId,
   defaultValues,
   initialImagePath = null,
+  parentOptions = [],
   submitLabel,
   onSubmit,
   onSuccess,
@@ -26,6 +34,8 @@ export function CategoryForm({
   categoryId?: string;
   defaultValues?: Partial<CategoryInput>;
   initialImagePath?: string | null;
+  /** Categories eligible to be a parent -- top level, and never this one. */
+  parentOptions?: { id: string; name: string }[];
   submitLabel: string;
   onSubmit: (
     input: CategoryInput,
@@ -40,14 +50,30 @@ export function CategoryForm({
   const [imagePath, setImagePath] = useState<string | null>(initialImagePath);
   const [uploading, setUploading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  // Base UI's Select.Value renders the raw value without this map.
+  const parentItems = useMemo(
+    () => ({
+      none: "None (top level)",
+      ...Object.fromEntries(parentOptions.map((o) => [o.id, o.name])),
+    }),
+    [parentOptions],
+  );
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CategoryInput>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { name: "", slug: "", description: "", ...defaultValues },
+    defaultValues: {
+      name: "",
+      slug: "",
+      description: "",
+      parent_id: null,
+      ...defaultValues,
+    },
   });
 
   async function handleImageUpload(file: File) {
@@ -89,7 +115,13 @@ export function CategoryForm({
       setServerError(result.error);
       return;
     }
-    reset({ name: "", slug: "", description: "", ...defaultValues });
+    reset({
+      name: "",
+      slug: "",
+      description: "",
+      parent_id: null,
+      ...defaultValues,
+    });
     setImagePath(initialImagePath);
     // Create mode only: the id just used now belongs to a real row, so the
     // next submission (adding another category) needs a fresh one.
@@ -115,6 +147,38 @@ export function CategoryForm({
       </FormField>
       <FormField id="description" label="Description" error={errors.description?.message}>
         <Textarea id="description" {...register("description")} />
+      </FormField>
+
+      <FormField
+        id="parent_id"
+        label="Parent category"
+        error={errors.parent_id?.message}
+      >
+        <Controller
+          name="parent_id"
+          control={control}
+          render={({ field }) => (
+            <Select
+              items={parentItems}
+              value={field.value ?? "none"}
+              onValueChange={(value) =>
+                field.onChange(value === "none" ? null : value)
+              }
+            >
+              <SelectTrigger id="parent_id" className="w-full">
+                <SelectValue placeholder="None (top level)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None (top level)</SelectItem>
+                {parentOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
       </FormField>
 
       <FormField id="image" label="Image">
