@@ -44,11 +44,24 @@ export function ProductFilters({
   return (
     <div className="flex flex-col gap-4">
       <form method="GET" action="/products" className="flex gap-2">
+        {/* Carry the current filters through the search. Without these a
+            search submits `q` alone, dropping the category you were browsing
+            and throwing you back to the full catalogue. */}
+        {query.category ? (
+          <input type="hidden" name="category" value={query.category} />
+        ) : null}
+        {query.sort ? (
+          <input type="hidden" name="sort" value={query.sort} />
+        ) : null}
         <Input
           type="search"
           name="q"
           defaultValue={query.q ?? ""}
-          placeholder="Search products..."
+          placeholder={
+            activeTopLevel
+              ? `Search in ${selected?.name ?? activeTopLevel.name}...`
+              : "Search products..."
+          }
           aria-label="Search products"
         />
         <Button type="submit">Search</Button>
@@ -76,8 +89,9 @@ export function ProductFilters({
             })}
             className={cn(
               "rounded-full border px-3 py-1 text-sm",
-              // A selected subcategory keeps its parent highlighted, so the
-              // row still shows where you are in the tree.
+              // Filled for the whole active branch, including when a
+              // subcategory is what's selected -- this row answers "which
+              // department am I in", and the row below answers "how narrow".
               activeTopLevel?.id === category.id
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border hover:bg-muted",
@@ -89,9 +103,26 @@ export function ProductFilters({
       </div>
 
       {/* Second row appears only once a top-level category is in play, so an
-          unfiltered listing isn't buried under every subcategory at once. */}
-      {siblings.length > 0 ? (
-        <div className="flex flex-wrap gap-2 pl-1">
+          unfiltered listing isn't buried under every subcategory at once.
+          Row one picks the branch; this row narrows within it, and its own
+          "All" is what widens back out to the whole branch. */}
+      {activeTopLevel && siblings.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 pl-1">
+          <Link
+            href={buildProductsUrl({
+              q: query.q,
+              sort: query.sort,
+              category: activeTopLevel.slug,
+            })}
+            className={cn(
+              "rounded-full border px-3 py-1 text-sm",
+              query.category === activeTopLevel.slug
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted-foreground hover:bg-muted",
+            )}
+          >
+            All {activeTopLevel.name}
+          </Link>
           {siblings.map((child) => (
             <Link
               key={child.id}
