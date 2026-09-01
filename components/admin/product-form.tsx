@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -55,6 +55,17 @@ export function ProductForm({
   });
 
   const price = useWatch({ control, name: "price_pesewas" });
+
+  // Base UI's Select.Value renders the raw *value* unless the root is given a
+  // value->label map. Without this the trigger showed the category's UUID
+  // after a selection instead of its name.
+  const categoryItems = useMemo(
+    () => ({
+      none: "Uncategorized",
+      ...Object.fromEntries(categories.map((c) => [c.id, c.name])),
+    }),
+    [categories],
+  );
 
   async function submit(data: ProductInput) {
     setServerError(null);
@@ -122,6 +133,7 @@ export function ProductForm({
           control={control}
           render={({ field }) => (
             <Select
+              items={categoryItems}
               value={field.value ?? "none"}
               onValueChange={(value) =>
                 field.onChange(value === "none" ? null : value)

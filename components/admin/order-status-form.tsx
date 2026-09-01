@@ -46,7 +46,9 @@ export function OrderStatusForm({
         }}
       >
         <SelectTrigger className="w-40">
-          <SelectValue />
+          {/* Matches the items' own capitalization -- Select.Value renders the
+              raw value, which is lowercase in ORDER_STATUSES. */}
+          <SelectValue className="capitalize" />
         </SelectTrigger>
         <SelectContent>
           {ORDER_STATUSES.map((value) => (
